@@ -297,7 +297,7 @@ def plot_psychrometric_chart(
 
     nT=800,
     nT_twb=250,
-    figsize=(16, 7),
+    figsize=(12, 7),
     dpi=130,
     font_base=12,
     label_RH=True,
@@ -450,10 +450,10 @@ def plot_psychrometric_chart(
                 if label_v:
                     # Fixed label anchor temperatures (°C) to avoid RH labels
                     v_label_T = {
-                        0.80: 4.0,
-                        0.85: 16.0,
-                        0.90: 25.0,
-                        0.95: 49.0,
+                        0.80: 6.0,
+                        0.85: 14.0,
+                        0.90: 22.0,
+                        0.95: 30.0,
                     }
 
                     if v in v_label_T:

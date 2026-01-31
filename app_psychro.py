@@ -148,12 +148,16 @@ show_v = st.sidebar.checkbox("Show specific volume lines", value=False)
 
 RH_lines = (0.2, 0.4, 0.6, 0.8, 1.0) if show_RH else ()
 h_lines = (20, 40, 60, 80, 100, 120) if show_h else ()
-Twb_lines = tuple(range(10, 41, 10)) if show_Twb else ()
+#Twb_lines = tuple(range(10, 41, 10)) if show_Twb else ()
+Twb_lines = (10, 20, 30, 40) if show_Twb else ()
+
 v_lines = (0.80, 0.85, 0.90, 0.95) if show_v else ()
 
 st.sidebar.subheader("Speed / resolution")
 nT = st.sidebar.slider("Resolution (RH/h/v)", 300, 1200, 800, 50)
-nT_twb = st.sidebar.slider("Resolution (Twb)", 80, 400, 200, 20)
+#nT_twb = st.sidebar.slider("Resolution (Twb)", 80, 400, 200, 20)
+nT_twb = st.sidebar.slider("Resolution (Twb)", 10, 40, 15, 5)
+
 
 st.sidebar.divider()
 st.sidebar.header("3) Enter values")
