@@ -424,7 +424,7 @@ def plot_psychrometric_chart(
                 angle = _angle_on_screen(ax, t_lab - dt, w1_g, t_lab + dt, w2_g) if (np.isfinite(w1_g) and np.isfinite(w2_g)) else 0.0
 
                 ax.annotate(
-                    f"h={h}",
+                    f"h={h} kJ/kg",
                     xy=(t_lab, w_lab_g),
                     xytext=label_h_offset_px,
                     textcoords="offset pixels",
@@ -457,10 +457,10 @@ def plot_psychrometric_chart(
                 if label_v:
                     # Fixed label anchor temperatures (°C) to avoid RH labels
                     v_label_T = {
-                        0.80: 6.0,
+                        0.80: -8.0,
                         0.85: 14.0,
                         0.90: 22.0,
-                        0.95: 30.0,
+                        0.95: 56.0,
                     }
 
                     if v in v_label_T:
@@ -490,7 +490,7 @@ def plot_psychrometric_chart(
                             )
 
                             ax.annotate(
-                                f"v={v:.2f}",
+                                f"v={v:.2f} m³/kg",
                                 xy=(t_lab, w_lab_g),
                                 xytext=label_v_offset_px,
                                 textcoords="offset pixels",

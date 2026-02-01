@@ -143,7 +143,7 @@ W_max = W_max_g / 1000.0
 st.sidebar.subheader("Overlays")
 show_RH = st.sidebar.checkbox("Show RH lines", value=True)
 show_h = st.sidebar.checkbox("Show enthalpy lines", value=True)
-show_Twb = st.sidebar.checkbox("Show wet-bulb lines (slower)", value=False)
+show_Twb = st.sidebar.checkbox("Show wet-bulb lines", value=False)
 show_v = st.sidebar.checkbox("Show specific volume lines", value=False)
 
 RH_lines = (0.2, 0.4, 0.6, 0.8, 1.0) if show_RH else ()
