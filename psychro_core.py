@@ -502,9 +502,13 @@ def plot_psychrometric_chart(
                 
                 
     # ---- Wet-bulb lines (right-side labels + aesthetic extension) ----
+
+    
     T_twb = np.linspace(T_min, T_max, nT_twb)
+    
 
     for Twb_target in Twb_lines:
+        Twb_K = Twb_target + 273.16
         W_twb = np.full_like(T_twb, np.nan, dtype=float)  # kg/kg
         W_guess = max(W_min, min(W_max, RHchart(max(Twb_target, T_min), 0.5)))
 
@@ -517,12 +521,15 @@ def plot_psychrometric_chart(
             if W_hi <= W_min:
                 continue
 
+
+            Twb_K = Twb_target + 273.16  # Twb fixed, in Kelvin 
+
             def res(W):
-                return calculate_wetbulb(Tdb, float(W)) - Twb_target
+                return wetbulb_residual(Twb_K, Tdb, float(W))
 
             W_guess = float(np.clip(W_guess, W_min + 1e-8, W_hi - 1e-8))
             try:
-                W_sol = fsolve(res, W_guess, xtol=1e-8, maxfev=60)[0]
+                W_sol = fsolve(res, W_guess, xtol=1e-8, maxfev=80)[0]
             except Exception:
                 continue
 
