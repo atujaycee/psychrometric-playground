@@ -1,3 +1,5 @@
+import os
+import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import fsolve
@@ -280,6 +282,11 @@ def psychro_state(given: dict, tol_W: float = 1e-6) -> dict:
 
     raise ValueError(f"Pair {keys} not implemented in the 12-case solver.")
 
+def load_twb_library(csv_filename="twb_precomputed.csv") -> "pd.DataFrame":
+    """Load precomputed Twb isolines from CSV stored alongside this module."""
+    csv_path = os.path.join(os.path.dirname(__file__), csv_filename)
+    return pd.read_csv(csv_path)
+
 
 # =========================
 # Plotting
@@ -504,81 +511,71 @@ def plot_psychrometric_chart(
     # ---- Wet-bulb lines (right-side labels + aesthetic extension) ----
 
     
-    T_twb = np.linspace(T_min, T_max, nT_twb)
-    
+    # ==========================================================
+    # Wet-bulb lines (from precomputed CSV)
+    # ==========================================================
+    if Twb_lines:
+        try:
+            df_twb = load_twb_library()  # expects columns: Twb_C, Tdb_C, W
+        except Exception:
+            df_twb = None
 
-    for Twb_target in Twb_lines:
-        Twb_K = Twb_target + 273.16
-        W_twb = np.full_like(T_twb, np.nan, dtype=float)  # kg/kg
-        W_guess = max(W_min, min(W_max, RHchart(max(Twb_target, T_min), 0.5)))
+        if df_twb is not None:
+            for Twb_target in Twb_lines:
+                seg = df_twb[df_twb["Twb_C"] == float(Twb_target)]
+                if seg.empty:
+                    continue
 
-        for j, Tdb in enumerate(T_twb):
-            if Tdb < Twb_target:
-                continue
+                Tseg = seg["Tdb_C"].to_numpy()
+                Wseg_g = seg["W"].to_numpy() * 1000.0  # kg/kg → g/kg
 
-            W_sat = RHchart(Tdb, 1.0)
-            W_hi = min(W_max, W_sat)
-            if W_hi <= W_min:
-                continue
+                mask = (
+                    np.isfinite(Wseg_g)
+                    & (Wseg_g >= W_min_g) & (Wseg_g <= W_max_g)
+                    & (Tseg >= T_min) & (Tseg <= T_max)
+                )
+                if not np.any(mask):
+                    continue
 
+                ax.plot(
+                    Tseg[mask],
+                    Wseg_g[mask],
+                    linestyle=":",
+                    linewidth=1.2
+                )
 
-            Twb_K = Twb_target + 273.16  # Twb fixed, in Kelvin 
+                # ---- right-side angled label ----
+                if label_Twb:
+                    idx = np.where(mask)[0]
+                    jlab = idx[int(0.40 * (len(idx) - 1))]
+                    t_lab = Tseg[jlab]
+                    w_lab_g = Wseg_g[jlab]
 
-            def res(W):
-                return wetbulb_residual(Twb_K, Tdb, float(W))
+                    j1 = max(jlab - 1, idx[0])
+                    j2 = min(jlab + 1, idx[-1])
 
-            W_guess = float(np.clip(W_guess, W_min + 1e-8, W_hi - 1e-8))
-            try:
-                W_sol = fsolve(res, W_guess, xtol=1e-8, maxfev=80)[0]
-            except Exception:
-                continue
+                    angle = _angle_on_screen(
+                        ax,
+                        Tseg[j1], Wseg_g[j1],
+                        Tseg[j2], Wseg_g[j2]
+                    )
 
-            if np.isfinite(W_sol) and (W_min <= W_sol <= W_hi):
-                W_twb[j] = float(W_sol)
-                W_guess = float(W_sol)
-
-        W_twb_g = W_twb * 1000.0
-        mask_twb = np.isfinite(W_twb_g) & (W_twb_g >= W_min_g) & (W_twb_g <= W_max_g)
-        if not np.any(mask_twb):
-            continue
-
-        ax.plot(T_twb[mask_twb], W_twb_g[mask_twb], linestyle=":", linewidth=1.2)
-
-        # Aesthetic extension to y-axis (unphysical)
-        idx = np.where(mask_twb)[0]
-        if len(idx) >= 2:
-            j0, j1 = idx[0], idx[1]
-            T0, T1 = T_twb[j0], T_twb[j1]
-            W0, W1 = W_twb_g[j0], W_twb_g[j1]
-            if (T1 - T0) != 0:
-                slope = (W1 - W0) / (T1 - T0)
-                T_ext = np.linspace(T_min, T0, 60)
-                W_ext = W0 + slope * (T_ext - T0)
-                mask_ext = np.isfinite(W_ext) & (W_ext >= W_min_g) & (W_ext <= W_max_g)
-                if np.any(mask_ext):
-                    ax.plot(T_ext[mask_ext], W_ext[mask_ext], linestyle=":", linewidth=1.0, alpha=0.45)
-
-        # Right-side angled label
-        if label_Twb:
-            jlab = idx[int(0.40 * (len(idx) - 1))]  # very right
-            t_lab = T_twb[jlab]
-            w_lab_g = W_twb_g[jlab]
-
-            jlab1 = max(jlab - 1, idx[0])
-            jlab2 = min(jlab + 1, idx[-1])
-            angle = _angle_on_screen(ax, T_twb[jlab1], W_twb_g[jlab1], T_twb[jlab2], W_twb_g[jlab2])
-
-            ax.annotate(
-                f"Twb={Twb_target}°C",
-                xy=(t_lab, w_lab_g),
-                xytext=(10, -10),
-                textcoords="offset pixels",
-                rotation=angle,
-                rotation_mode="anchor",
-                va="center",
-                ha="left",
-                bbox=dict(boxstyle="round,pad=0.16", fc="white", ec="none", alpha=0.65),
-            )
+                    ax.annotate(
+                        f"Twb={int(Twb_target)}°C",
+                        xy=(t_lab, w_lab_g),
+                        xytext=(10, -10),
+                        textcoords="offset pixels",
+                        rotation=angle,
+                        rotation_mode="anchor",
+                        va="center",
+                        ha="left",
+                        bbox=dict(
+                            boxstyle="round,pad=0.16",
+                            fc="white",
+                            ec="none",
+                            alpha=0.65
+                        ),
+                    )
 
     # ---- plot state points ----
     if states is not None:
